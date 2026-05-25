@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.performance.appraisal.mapper.EmployeeMapper">
+
+    <resultMap id="BaseResultMap" type="com.performance.appraisal.entity.EmpEmployee">
+        <id column="id" property="id"/>
+        <result column="emp_no" property="empNo"/>
+        <result column="emp_name" property="empName"/>
+        <result column="password" property="password"/>
+        <result column="gender" property="gender"/>
+        <result column="phone" property="phone"/>
+        <result column="email" property="email"/>
+        <result column="dept_id" property="deptId"/>
+        <result column="position" property="position"/>
+        <result column="job_level" property="jobLevel"/>
+        <result column="hire_date" property="hireDate"/>
+        <result column="emp_type" property="empType"/>
+        <result column="supervisor_id" property="supervisorId"/>
+        <result column="role_code" property="roleCode"/>
+        <result column="status" property="status"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="is_deleted" property="isDeleted"/>
+    </resultMap>
+
+    <resultMap id="DetailResultMap" type="com.performance.appraisal.dto.EmployeeDTO">
+        <id column="id" property="id"/>
+        <result column="emp_no" property="empNo"/>
+        <result column="emp_name" property="empName"/>
+        <result column="gender" property="gender"/>
+        <result column="phone" property="phone"/>
+        <result column="email" property="email"/>
+        <result column="dept_id" property="deptId"/>
+        <result column="dept_name" property="deptName"/>
+        <result column="position" property="position"/>
+        <result column="job_level" property="jobLevel"/>
+        <result column="hire_date" property="hireDate"/>
+        <result column="emp_type" property="empType"/>
+        <result column="supervisor_id" property="supervisorId"/>
+        <result column="supervisor_name" property="supervisorName"/>
+        <result column="role_code" property="roleCode"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, emp_no, emp_name, password, gender, phone, email, dept_id,
+        position, job_level, hire_date, emp_type, supervisor_id, role_code,
+        status, create_time, update_time, is_deleted
+    </sql>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM emp_employee
+        WHERE id = #{id} AND is_deleted = 0
+    </select>
+
+    <select id="selectByEmpNo" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM emp_employee
+        WHERE emp_no = #{empNo} AND is_deleted = 0 AND status = 1
+    </select>
+
+    <select id="selectList" resultMap="DetailResultMap">
+        SELECT e.id, e.emp_no, e.emp_name, e.gender, e.phone, e.email,
+               e.dept_id, d.dept_name, e.position, e.job_level, e.hire_date,
+               e.emp_type, e.supervisor_id, s.emp_name AS supervisor_name,
+               e.role_code
+        FROM emp_employee e
+        LEFT JOIN sys_department d ON e.dept_id = d.id
+        LEFT JOIN emp_employee s ON e.supervisor_id = s.id
+        WHERE e.is_deleted = 0
+        <if test="empName != null and empName != ''">
+            AND e.emp_name LIKE CONCAT('%', #{empName}, '%')
+        </if>
+        <if test="deptId != null">
+            AND e.dept_id = #{deptId}
+        </if>
+        <if test="roleCode != null and roleCode != ''">
+            AND e.role_code = #{roleCode}
+        </if>
+        ORDER BY e.id DESC
+    </select>
+
+    <insert id="insert" parameterType="com.performance.appraisal.entity.EmpEmployee"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO emp_employee (emp_no, emp_name, password, gender, phone, email,
+                                   dept_id, position, job_level, hire_date, emp_type,
+                                   supervisor_id, role_code, status, create_time, update_time)
+        VALUES (#{empNo}, #{empName}, #{password}, #{gender}, #{phone}, #{email},
+                #{deptId}, #{position}, #{jobLevel}, #{hireDate}, #{empType},
+                #{supervisorId}, #{roleCode}, #{status}, NOW(), NOW())
+    </insert>
+
+    <update id="update" parameterType="com.performance.appraisal.entity.EmpEmployee">
+        UPDATE emp_employee
+        <set>
+            <if test="empName != null">emp_name = #{empName},</if>
+            <if test="gender != null">gender = #{gender},</if>
+            <if test="phone != null">phone = #{phone},</if>
+            <if test="email != null">email = #{email},</if>
+            <if test="deptId != null">dept_id = #{deptId},</if>
+            <if test="position != null">position = #{position},</if>
+            <if test="jobLevel != null">job_level = #{jobLevel},</if>
+            <if test="hireDate != null">hire_date = #{hireDate},</if>
+            <if test="empType != null">emp_type = #{empType},</if>
+            <if test="supervisorId != null">supervisor_id = #{supervisorId},</if>
+            <if test="roleCode != null">role_code = #{roleCode},</if>
+            <if test="status != null">status = #{status},</if>
+            update_time = NOW()
+        </set>
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
+
+    <update id="deleteById">
+        UPDATE emp_employee SET is_deleted = 1, update_time = NOW() WHERE id = #{id}
+    </update>
+
+    <select id="selectSubordinates" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM emp_employee
+        WHERE supervisor_id = #{supervisorId} AND is_deleted = 0 AND status = 1
+    </select>
+
+    <select id="selectDetailById" resultMap="DetailResultMap">
+        SELECT e.id, e.emp_no, e.emp_name, e.gender, e.phone, e.email,
+               e.dept_id, d.dept_name, e.position, e.job_level, e.hire_date,
+               e.emp_type, e.supervisor_id, s.emp_name AS supervisor_name,
+               e.role_code
+        FROM emp_employee e
+        LEFT JOIN sys_department d ON e.dept_id = d.id
+        LEFT JOIN emp_employee s ON e.supervisor_id = s.id
+        WHERE e.id = #{id} AND e.is_deleted = 0
+    </select>
+</mapper>

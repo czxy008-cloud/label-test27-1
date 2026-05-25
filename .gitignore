@@ -1,0 +1,70 @@
+# =========================
+# Java / Maven
+# =========================
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### IntelliJ IDEA ###
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+
+### VS Code ###
+.vscode/
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+### Eclipse ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### Mac OS ###
+.DS_Store
+
+### Windows ###
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+### Maven ###
+.mvn
+mvnw
+mvnw.cmd
+
+### Logs ###
+*.log
+logs/
+
+### Environment files ###
+.env
+.env.local
+
+### PostgreSQL ###
+pgdata/
+
+### Redis ###
+dump.rdb
+
+### Temp files ###
+*.tmp
+*.temp
+*.swp
+*.swo
+
+### Backup files ###
+*.bak
+*.backup

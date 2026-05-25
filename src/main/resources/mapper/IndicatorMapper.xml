@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.performance.appraisal.mapper.IndicatorMapper">
+
+    <resultMap id="BaseResultMap" type="com.performance.appraisal.entity.AppraisalIndicator">
+        <id column="id" property="id"/>
+        <result column="template_id" property="templateId"/>
+        <result column="parent_id" property="parentId"/>
+        <result column="indicator_name" property="indicatorName"/>
+        <result column="indicator_code" property="indicatorCode"/>
+        <result column="indicator_type" property="indicatorType"/>
+        <result column="weight" property="weight"/>
+        <result column="max_score" property="maxScore"/>
+        <result column="scoring_criteria" property="scoringCriteria"/>
+        <result column="description" property="description"/>
+        <result column="sort_order" property="sortOrder"/>
+        <result column="status" property="status"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <resultMap id="TreeResultMap" type="com.performance.appraisal.dto.IndicatorDTO">
+        <id column="id" property="id"/>
+        <result column="indicator_name" property="indicatorName"/>
+        <result column="indicator_code" property="indicatorCode"/>
+        <result column="indicator_type" property="indicatorType"/>
+        <result column="weight" property="weight"/>
+        <result column="max_score" property="maxScore"/>
+        <result column="scoring_criteria" property="scoringCriteria"/>
+        <result column="description" property="description"/>
+        <result column="sort_order" property="sortOrder"/>
+        <collection property="children" ofType="com.performance.appraisal.dto.IndicatorDTO"
+                    column="id" select="selectChildrenByParentId"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, template_id, parent_id, indicator_name, indicator_code, indicator_type,
+        weight, max_score, scoring_criteria, description, sort_order, status,
+        create_time, update_time
+    </sql>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM appraisal_indicator
+        WHERE id = #{id} AND status = 1
+    </select>
+
+    <select id="selectByTemplateId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM appraisal_indicator
+        WHERE template_id = #{templateId} AND status = 1
+        ORDER BY sort_order, id
+    </select>
+
+    <select id="selectTreeByTemplateId" resultMap="TreeResultMap">
+        SELECT id, indicator_name, indicator_code, indicator_type, weight,
+               max_score, scoring_criteria, description, sort_order
+        FROM appraisal_indicator
+        WHERE template_id = #{templateId} AND parent_id IS NULL AND status = 1
+        ORDER BY sort_order, id
+    </select>
+
+    <select id="selectChildrenByParentId" resultMap="TreeResultMap">
+        SELECT id, indicator_name, indicator_code, indicator_type, weight,
+               max_score, scoring_criteria, description, sort_order
+        FROM appraisal_indicator
+        WHERE parent_id = #{id} AND status = 1
+        ORDER BY sort_order, id
+    </select>
+
+    <select id="selectByParentId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM appraisal_indicator
+        WHERE parent_id = #{parentId} AND status = 1
+        ORDER BY sort_order, id
+    </select>
+
+    <insert id="insert" parameterType="com.performance.appraisal.entity.AppraisalIndicator"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO appraisal_indicator (template_id, parent_id, indicator_name, indicator_code,
+                                          indicator_type, weight, max_score, scoring_criteria,
+                                          description, sort_order, status, create_time, update_time)
+        VALUES (#{templateId}, #{parentId}, #{indicatorName}, #{indicatorCode},
+                #{indicatorType}, #{weight}, #{maxScore}, #{scoringCriteria},
+                #{description}, #{sortOrder}, #{status}, NOW(), NOW())
+    </insert>
+
+    <update id="update" parameterType="com.performance.appraisal.entity.AppraisalIndicator">
+        UPDATE appraisal_indicator
+        <set>
+            <if test="indicatorName != null">indicator_name = #{indicatorName},</if>
+            <if test="indicatorCode != null">indicator_code = #{indicatorCode},</if>
+            <if test="indicatorType != null">indicator_type = #{indicatorType},</if>
+            <if test="weight != null">weight = #{weight},</if>
+            <if test="maxScore != null">max_score = #{maxScore},</if>
+            <if test="scoringCriteria != null">scoring_criteria = #{scoringCriteria},</if>
+            <if test="description != null">description = #{description},</if>
+            <if test="sortOrder != null">sort_order = #{sortOrder},</if>
+            <if test="status != null">status = #{status},</if>
+            update_time = NOW()
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <update id="deleteById">
+        UPDATE appraisal_indicator SET status = 0, update_time = NOW() WHERE id = #{id}
+    </update>
+
+    <update id="deleteByTemplateId">
+        UPDATE appraisal_indicator SET status = 0, update_time = NOW() WHERE template_id = #{templateId}
+    </update>
+</mapper>

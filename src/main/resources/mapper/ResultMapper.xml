@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.performance.appraisal.mapper.ResultMapper">
+
+    <resultMap id="BaseResultMap" type="com.performance.appraisal.entity.AppraisalResult">
+        <id column="id" property="id"/>
+        <result column="template_id" property="templateId"/>
+        <result column="employee_id" property="employeeId"/>
+        <result column="dept_id" property="deptId"/>
+        <result column="self_total_score" property="selfTotalScore"/>
+        <result column="supervisor_total_score" property="supervisorTotalScore"/>
+        <result column="final_total_score" property="finalTotalScore"/>
+        <result column="appraisal_grade" property="appraisalGrade"/>
+        <result column="grade_comment" property="gradeComment"/>
+        <result column="overall_comment" property="overallComment"/>
+        <result column="result_status" property="resultStatus"/>
+        <result column="confirm_status" property="confirmStatus"/>
+        <result column="confirm_time" property="confirmTime"/>
+        <result column="publish_start_time" property="publishStartTime"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <resultMap id="SummaryResultMap" type="com.performance.appraisal.dto.ResultSummaryDTO">
+        <result column="employee_id" property="employeeId"/>
+        <result column="emp_no" property="empNo"/>
+        <result column="emp_name" property="empName"/>
+        <result column="dept_id" property="deptId"/>
+        <result column="dept_name" property="deptName"/>
+        <result column="self_total_score" property="selfTotalScore"/>
+        <result column="supervisor_total_score" property="supervisorTotalScore"/>
+        <result column="final_total_score" property="finalTotalScore"/>
+        <result column="appraisal_grade" property="appraisalGrade"/>
+        <result column="overall_comment" property="overallComment"/>
+        <result column="result_status" property="resultStatus"/>
+        <result column="confirm_status" property="confirmStatus"/>
+    </resultMap>
+
+    <resultMap id="TrendResultMap" type="com.performance.appraisal.dto.TrendDTO">
+        <result column="cycle_value" property="cycleValue"/>
+        <result column="final_total_score" property="finalTotalScore"/>
+        <result column="appraisal_grade" property="appraisalGrade"/>
+        <result column="self_total_score" property="selfTotalScore"/>
+        <result column="supervisor_total_score" property="supervisorTotalScore"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, template_id, employee_id, dept_id, self_total_score, supervisor_total_score,
+        final_total_score, appraisal_grade, grade_comment, overall_comment,
+        result_status, confirm_status, confirm_time, publish_start_time,
+        create_time, update_time
+    </sql>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM appraisal_result
+        WHERE id = #{id}
+    </select>
+
+    <select id="selectByTemplateAndEmployee" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM appraisal_result
+        WHERE template_id = #{templateId} AND employee_id = #{employeeId}
+    </select>
+
+    <select id="selectSummaryList" resultMap="SummaryResultMap">
+        SELECT r.employee_id, e.emp_no, e.emp_name,
+               r.dept_id, d.dept_name,
+               r.self_total_score, r.supervisor_total_score, r.final_total_score,
+               r.appraisal_grade, r.overall_comment,
+               r.result_status, r.confirm_status
+        FROM appraisal_result r
+        LEFT JOIN emp_employee e ON r.employee_id = e.id
+        LEFT JOIN sys_department d ON r.dept_id = d.id
+        WHERE 1 = 1
+        <if test="templateId != null">
+            AND r.template_id = #{templateId}
+        </if>
+        <if test="deptId != null">
+            AND r.dept_id = #{deptId}
+        </if>
+        <if test="appraisalGrade != null and appraisalGrade != ''">
+            AND r.appraisal_grade = #{appraisalGrade}
+        </if>
+        <if test="resultStatus != null and resultStatus != ''">
+            AND r.result_status = #{resultStatus}
+        </if>
+        ORDER BY r.final_total_score DESC
+    </select>
+
+    <select id="selectPublishedList" resultMap="SummaryResultMap">
+        SELECT r.employee_id,
+               CASE
+                   WHEN LENGTH(e.emp_name) > 1 THEN CONCAT(SUBSTRING(e.emp_name, 1, 1), '*')
+                   ELSE e.emp_name
+               END AS emp_name,
+               CONCAT(SUBSTRING(e.emp_no, 1, 1), '***') AS emp_no,
+               r.dept_id, d.dept_name,
+               r.self_total_score, r.supervisor_total_score, r.final_total_score,
+               r.appraisal_grade, r.overall_comment,
+               r.result_status, r.confirm_status
+        FROM appraisal_result r
+        LEFT JOIN emp_employee e ON r.employee_id = e.id
+        LEFT JOIN sys_department d ON r.dept_id = d.id
+        WHERE r.result_status = 'published'
+        <if test="templateId != null">
+            AND r.template_id = #{templateId}
+        </if>
+        <if test="deptId != null">
+            AND r.dept_id = #{deptId}
+        </if>
+        ORDER BY r.final_total_score DESC
+    </select>
+
+    <insert id="insert" parameterType="com.performance.appraisal.entity.AppraisalResult"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO appraisal_result (template_id, employee_id, dept_id,
+                                       self_total_score, supervisor_total_score, final_total_score,
+                                       appraisal_grade, grade_comment, overall_comment,
+                                       result_status, confirm_status, publish_start_time,
+                                       create_time, update_time)
+        VALUES (#{templateId}, #{employeeId}, #{deptId},
+                #{selfTotalScore}, #{supervisorTotalScore}, #{finalTotalScore},
+                #{appraisalGrade}, #{gradeComment}, #{overallComment},
+                #{resultStatus}, #{confirmStatus}, #{publishStartTime},
+                NOW(), NOW())
+    </insert>
+
+    <update id="update" parameterType="com.performance.appraisal.entity.AppraisalResult">
+        UPDATE appraisal_result
+        <set>
+            <if test="selfTotalScore != null">self_total_score = #{selfTotalScore},</if>
+            <if test="supervisorTotalScore != null">supervisor_total_score = #{supervisorTotalScore},</if>
+            <if test="finalTotalScore != null">final_total_score = #{finalTotalScore},</if>
+            <if test="appraisalGrade != null">appraisal_grade = #{appraisalGrade},</if>
+            <if test="gradeComment != null">grade_comment = #{gradeComment},</if>
+            <if test="overallComment != null">overall_comment = #{overallComment},</if>
+            <if test="resultStatus != null">result_status = #{resultStatus},</if>
+            <if test="confirmStatus != null">confirm_status = #{confirmStatus},</if>
+            <if test="confirmTime != null">confirm_time = #{confirmTime},</if>
+            <if test="publishStartTime != null">publish_start_time = #{publishStartTime},</if>
+            update_time = NOW()
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteByTemplateId">
+        DELETE FROM appraisal_result WHERE template_id = #{templateId}
+    </delete>
+
+    <select id="selectTrendByEmployee" resultMap="TrendResultMap">
+        SELECT t.cycle_value, r.final_total_score, r.appraisal_grade,
+               r.self_total_score, r.supervisor_total_score
+        FROM appraisal_result r
+        LEFT JOIN appraisal_template t ON r.template_id = t.id
+        WHERE r.employee_id = #{employeeId}
+          AND t.is_deleted = 0
+          AND r.result_status IN ('confirmed', 'published')
+        <if test="startCycle != null and startCycle != ''">
+            AND t.cycle_value >= #{startCycle}
+        </if>
+        <if test="endCycle != null and endCycle != ''">
+            AND t.cycle_value <= #{endCycle}
+        </if>
+        ORDER BY t.cycle_value ASC
+    </select>
+
+    <select id="selectDetailById" resultMap="SummaryResultMap">
+        SELECT r.id, r.employee_id, e.emp_no, e.emp_name,
+               r.dept_id, d.dept_name,
+               r.self_total_score, r.supervisor_total_score, r.final_total_score,
+               r.appraisal_grade, r.overall_comment,
+               r.result_status, r.confirm_status
+        FROM appraisal_result r
+        LEFT JOIN emp_employee e ON r.employee_id = e.id
+        LEFT JOIN sys_department d ON r.dept_id = d.id
+        WHERE r.id = #{id}
+    </select>
+</mapper>

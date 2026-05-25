@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.performance.appraisal.mapper.TemplateMapper">
+
+    <resultMap id="BaseResultMap" type="com.performance.appraisal.entity.AppraisalTemplate">
+        <id column="id" property="id"/>
+        <result column="template_name" property="templateName"/>
+        <result column="appraisal_cycle" property="appraisalCycle"/>
+        <result column="cycle_value" property="cycleValue"/>
+        <result column="applicable_dept_id" property="applicableDeptId"/>
+        <result column="self_weight" property="selfWeight"/>
+        <result column="self_start_time" property="selfStartTime"/>
+        <result column="self_end_time" property="selfEndTime"/>
+        <result column="supervisor_start_time" property="supervisorStartTime"/>
+        <result column="supervisor_end_time" property="supervisorEndTime"/>
+        <result column="publish_start_time" property="publishStartTime"/>
+        <result column="publish_end_time" property="publishEndTime"/>
+        <result column="template_status" property="templateStatus"/>
+        <result column="description" property="description"/>
+        <result column="created_by" property="createdBy"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="is_deleted" property="isDeleted"/>
+    </resultMap>
+
+    <resultMap id="DTOResultMap" type="com.performance.appraisal.dto.TemplateDTO">
+        <id column="id" property="id"/>
+        <result column="template_name" property="templateName"/>
+        <result column="appraisal_cycle" property="appraisalCycle"/>
+        <result column="cycle_value" property="cycleValue"/>
+        <result column="applicable_dept_id" property="applicableDeptId"/>
+        <result column="self_weight" property="selfWeight"/>
+        <result column="self_start_time" property="selfStartTime"/>
+        <result column="self_end_time" property="selfEndTime"/>
+        <result column="supervisor_start_time" property="supervisorStartTime"/>
+        <result column="supervisor_end_time" property="supervisorEndTime"/>
+        <result column="publish_start_time" property="publishStartTime"/>
+        <result column="publish_end_time" property="publishEndTime"/>
+        <result column="template_status" property="templateStatus"/>
+        <result column="description" property="description"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, template_name, appraisal_cycle, cycle_value, applicable_dept_id,
+        self_weight, self_start_time, self_end_time, supervisor_start_time,
+        supervisor_end_time, publish_start_time, publish_end_time,
+        template_status, description, created_by, create_time, update_time, is_deleted
+    </sql>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM appraisal_template
+        WHERE id = #{id} AND is_deleted = 0
+    </select>
+
+    <select id="selectList" resultMap="DTOResultMap">
+        SELECT id, template_name, appraisal_cycle, cycle_value, applicable_dept_id,
+               self_weight, self_start_time, self_end_time, supervisor_start_time,
+               supervisor_end_time, publish_start_time, publish_end_time,
+               template_status, description
+        FROM appraisal_template
+        WHERE is_deleted = 0
+        <if test="templateName != null and templateName != ''">
+            AND template_name LIKE CONCAT('%', #{templateName}, '%')
+        </if>
+        <if test="templateStatus != null and templateStatus != ''">
+            AND template_status = #{templateStatus}
+        </if>
+        <if test="appraisalCycle != null and appraisalCycle != ''">
+            AND appraisal_cycle = #{appraisalCycle}
+        </if>
+        ORDER BY id DESC
+    </select>
+
+    <insert id="insert" parameterType="com.performance.appraisal.entity.AppraisalTemplate"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO appraisal_template (template_name, appraisal_cycle, cycle_value,
+                                         applicable_dept_id, self_weight, self_start_time,
+                                         self_end_time, supervisor_start_time, supervisor_end_time,
+                                         publish_start_time, publish_end_time, template_status,
+                                         description, created_by, create_time, update_time)
+        VALUES (#{templateName}, #{appraisalCycle}, #{cycleValue}, #{applicableDeptId},
+                #{selfWeight}, #{selfStartTime}, #{selfEndTime}, #{supervisorStartTime},
+                #{supervisorEndTime}, #{publishStartTime}, #{publishEndTime}, #{templateStatus},
+                #{description}, #{createdBy}, NOW(), NOW())
+    </insert>
+
+    <update id="update" parameterType="com.performance.appraisal.entity.AppraisalTemplate">
+        UPDATE appraisal_template
+        <set>
+            <if test="templateName != null">template_name = #{templateName},</if>
+            <if test="appraisalCycle != null">appraisal_cycle = #{appraisalCycle},</if>
+            <if test="cycleValue != null">cycle_value = #{cycleValue},</if>
+            <if test="applicableDeptId != null">applicable_dept_id = #{applicableDeptId},</if>
+            <if test="selfWeight != null">self_weight = #{selfWeight},</if>
+            <if test="selfStartTime != null">self_start_time = #{selfStartTime},</if>
+            <if test="selfEndTime != null">self_end_time = #{selfEndTime},</if>
+            <if test="supervisorStartTime != null">supervisor_start_time = #{supervisorStartTime},</if>
+            <if test="supervisorEndTime != null">supervisor_end_time = #{supervisorEndTime},</if>
+            <if test="publishStartTime != null">publish_start_time = #{publishStartTime},</if>
+            <if test="publishEndTime != null">publish_end_time = #{publishEndTime},</if>
+            <if test="templateStatus != null">template_status = #{templateStatus},</if>
+            <if test="description != null">description = #{description},</if>
+            update_time = NOW()
+        </set>
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
+
+    <update id="deleteById">
+        UPDATE appraisal_template SET is_deleted = 1, update_time = NOW() WHERE id = #{id}
+    </update>
+
+    <select id="selectActiveTemplates" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM appraisal_template
+        WHERE template_status = 'active' AND is_deleted = 0
+        ORDER BY create_time DESC
+    </select>
+</mapper>

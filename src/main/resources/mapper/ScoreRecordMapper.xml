@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.performance.appraisal.mapper.ScoreRecordMapper">
+
+    <resultMap id="BaseResultMap" type="com.performance.appraisal.entity.AppraisalScoreRecord">
+        <id column="id" property="id"/>
+        <result column="template_id" property="templateId"/>
+        <result column="employee_id" property="employeeId"/>
+        <result column="indicator_id" property="indicatorId"/>
+        <result column="self_score" property="selfScore"/>
+        <result column="self_comment" property="selfComment"/>
+        <result column="self_submit_time" property="selfSubmitTime"/>
+        <result column="supervisor_id" property="supervisorId"/>
+        <result column="supervisor_score" property="supervisorScore"/>
+        <result column="supervisor_comment" property="supervisorComment"/>
+        <result column="supervisor_submit_time" property="supervisorSubmitTime"/>
+        <result column="final_score" property="finalScore"/>
+        <result column="score_status" property="scoreStatus"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, template_id, employee_id, indicator_id, self_score, self_comment,
+        self_submit_time, supervisor_id, supervisor_score, supervisor_comment,
+        supervisor_submit_time, final_score, score_status, create_time, update_time
+    </sql>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM appraisal_score_record
+        WHERE id = #{id}
+    </select>
+
+    <select id="selectByTemplateAndEmployee" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM appraisal_score_record
+        WHERE template_id = #{templateId} AND employee_id = #{employeeId}
+        ORDER BY indicator_id
+    </select>
+
+    <select id="selectByTemplateEmployeeAndIndicator" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM appraisal_score_record
+        WHERE template_id = #{templateId} AND employee_id = #{employeeId} AND indicator_id = #{indicatorId}
+    </select>
+
+    <insert id="insert" parameterType="com.performance.appraisal.entity.AppraisalScoreRecord"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO appraisal_score_record (template_id, employee_id, indicator_id,
+                                             self_score, self_comment, self_submit_time,
+                                             supervisor_id, supervisor_score, supervisor_comment,
+                                             supervisor_submit_time, final_score, score_status,
+                                             create_time, update_time)
+        VALUES (#{templateId}, #{employeeId}, #{indicatorId},
+                #{selfScore}, #{selfComment}, #{selfSubmitTime},
+                #{supervisorId}, #{supervisorScore}, #{supervisorComment},
+                #{supervisorSubmitTime}, #{finalScore}, #{scoreStatus},
+                NOW(), NOW())
+    </insert>
+
+    <update id="update" parameterType="com.performance.appraisal.entity.AppraisalScoreRecord">
+        UPDATE appraisal_score_record
+        <set>
+            <if test="selfScore != null">self_score = #{selfScore},</if>
+            <if test="selfComment != null">self_comment = #{selfComment},</if>
+            <if test="selfSubmitTime != null">self_submit_time = #{selfSubmitTime},</if>
+            <if test="supervisorId != null">supervisor_id = #{supervisorId},</if>
+            <if test="supervisorScore != null">supervisor_score = #{supervisorScore},</if>
+            <if test="supervisorComment != null">supervisor_comment = #{supervisorComment},</if>
+            <if test="supervisorSubmitTime != null">supervisor_submit_time = #{supervisorSubmitTime},</if>
+            <if test="finalScore != null">final_score = #{finalScore},</if>
+            <if test="scoreStatus != null">score_status = #{scoreStatus},</if>
+            update_time = NOW()
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateSelfScore" parameterType="com.performance.appraisal.entity.AppraisalScoreRecord">
+        UPDATE appraisal_score_record
+        SET self_score = #{selfScore},
+            self_comment = #{selfComment},
+            self_submit_time = NOW(),
+            score_status = CASE WHEN score_status = 'pending' THEN 'self_done' ELSE score_status END,
+            update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateSupervisorScore" parameterType="com.performance.appraisal.entity.AppraisalScoreRecord">
+        UPDATE appraisal_score_record
+        SET supervisor_score = #{supervisorScore},
+            supervisor_comment = #{supervisorComment},
+            supervisor_id = #{supervisorId},
+            supervisor_submit_time = NOW(),
+            score_status = 'supervisor_done',
+            update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateFinalScore">
+        UPDATE appraisal_score_record
+        SET final_score = #{finalScore}, update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteByTemplateAndEmployee">
+        DELETE FROM appraisal_score_record WHERE template_id = #{templateId} AND employee_id = #{employeeId}
+    </delete>
+
+    <select id="selectByTemplateId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM appraisal_score_record
+        WHERE template_id = #{templateId}
+        ORDER BY employee_id, indicator_id
+    </select>
+</mapper>
