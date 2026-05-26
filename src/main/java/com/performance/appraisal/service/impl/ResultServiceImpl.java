@@ -2,20 +2,27 @@ package com.performance.appraisal.service.impl;
 
 import cn.dev33.satoken.stp.StpUtil;
 import com.performance.appraisal.common.ResultCode;
-import com.performance.appraisal.dto.ResultSummaryDTO;
-import com.performance.appraisal.dto.TrendDTO;
+import com.performance.appraisal.dto.*;
+import com.performance.appraisal.entity.AppraisalIndicator;
 import com.performance.appraisal.entity.AppraisalResult;
+import com.performance.appraisal.entity.AppraisalScoreRecord;
 import com.performance.appraisal.entity.AppraisalTemplate;
 import com.performance.appraisal.entity.EmpEmployee;
+import com.performance.appraisal.mapper.IndicatorMapper;
 import com.performance.appraisal.mapper.ResultMapper;
+import com.performance.appraisal.mapper.ScoreRecordMapper;
 import com.performance.appraisal.mapper.TemplateMapper;
+import com.performance.appraisal.service.AttendanceService;
 import com.performance.appraisal.service.EmployeeService;
 import com.performance.appraisal.service.ResultService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -29,6 +36,15 @@ public class ResultServiceImpl implements ResultService {
 
     @Autowired
     private EmployeeService employeeService;
+
+    @Autowired
+    private ScoreRecordMapper scoreRecordMapper;
+
+    @Autowired
+    private IndicatorMapper indicatorMapper;
+
+    @Autowired
+    private AttendanceService attendanceService;
 
     @Override
     public ResultSummaryDTO getDetailById(Long id) {
@@ -61,6 +77,109 @@ public class ResultServiceImpl implements ResultService {
     @Override
     public List<TrendDTO> getTrend(Long employeeId, String startCycle, String endCycle) {
         return resultMapper.selectTrendByEmployee(employeeId, startCycle, endCycle);
+    }
+
+    @Override
+    public SupervisorEvaluationDetailDTO getSupervisorEvaluationDetail(Long templateId, Long employeeId) {
+        AppraisalTemplate template = templateMapper.selectById(templateId);
+        if (template == null) {
+            throw new RuntimeException(ResultCode.TEMPLATE_NOT_FOUND.getMessage());
+        }
+
+        EmployeeDTO employeeDetail = employeeService.getDetailById(employeeId);
+        if (employeeDetail == null) {
+            throw new RuntimeException(ResultCode.EMPLOYEE_NOT_FOUND.getMessage());
+        }
+
+        AppraisalResult appraisalResult = resultMapper.selectByTemplateAndEmployee(templateId, employeeId);
+
+        SupervisorEvaluationDetailDTO dto = new SupervisorEvaluationDetailDTO();
+        dto.setTemplateId(templateId);
+        dto.setTemplateName(template.getTemplateName());
+        dto.setCycleValue(template.getCycleValue());
+
+        dto.setEmployeeId(employeeId);
+        dto.setEmpNo(employeeDetail.getEmpNo());
+        dto.setEmpName(employeeDetail.getEmpName());
+        dto.setDeptId(employeeDetail.getDeptId());
+        dto.setDeptName(employeeDetail.getDeptName());
+        dto.setPosition(employeeDetail.getPosition());
+
+        if (appraisalResult != null) {
+            dto.setSelfTotalScore(appraisalResult.getSelfTotalScore());
+            dto.setSupervisorTotalScore(appraisalResult.getSupervisorTotalScore());
+            dto.setFinalTotalScore(appraisalResult.getFinalTotalScore());
+            dto.setAppraisalGrade(appraisalResult.getAppraisalGrade());
+            dto.setOverallComment(appraisalResult.getOverallComment());
+        }
+
+        List<AppraisalScoreRecord> scoreRecords = scoreRecordMapper.selectByTemplateAndEmployee(templateId, employeeId);
+        List<SupervisorEvaluationDetailDTO.ScoreRecordDetailDTO> scoreRecordDetails = new ArrayList<>();
+        for (AppraisalScoreRecord record : scoreRecords) {
+            AppraisalIndicator indicator = indicatorMapper.selectById(record.getIndicatorId());
+            if (indicator == null) {
+                continue;
+            }
+            SupervisorEvaluationDetailDTO.ScoreRecordDetailDTO detail = new SupervisorEvaluationDetailDTO.ScoreRecordDetailDTO();
+            detail.setIndicatorId(indicator.getId());
+            detail.setIndicatorName(indicator.getIndicatorName());
+            detail.setIndicatorType(indicator.getIndicatorType());
+            detail.setWeight(indicator.getWeight());
+            detail.setMaxScore(indicator.getMaxScore());
+            detail.setSelfScore(record.getSelfScore());
+            detail.setSelfComment(record.getSelfComment());
+            detail.setSupervisorScore(record.getSupervisorScore());
+            detail.setSupervisorComment(record.getSupervisorComment());
+            detail.setFinalScore(record.getFinalScore());
+            scoreRecordDetails.add(detail);
+        }
+        dto.setScoreRecords(scoreRecordDetails);
+
+        LocalDate[] dateRange = calculateCycleDateRange(template.getAppraisalCycle(), template.getCycleValue());
+        if (dateRange != null) {
+            AttendanceSummaryDTO attendanceSummary = attendanceService.getAttendanceSummary(
+                    employeeId, dateRange[0], dateRange[1]);
+            dto.setAttendanceSummary(attendanceSummary);
+
+            List<AttendanceRecordDTO> attendanceRecords = attendanceService.getAttendanceExceptions(
+                    employeeId, dateRange[0], dateRange[1]);
+            dto.setAttendanceRecords(attendanceRecords);
+        }
+
+        return dto;
+    }
+
+    private LocalDate[] calculateCycleDateRange(String appraisalCycle, String cycleValue) {
+        if (appraisalCycle == null || cycleValue == null) {
+            return null;
+        }
+
+        try {
+            switch (appraisalCycle) {
+                case "monthly":
+                    YearMonth yearMonth = YearMonth.parse(cycleValue);
+                    return new LocalDate[]{yearMonth.atDay(1), yearMonth.atEndOfMonth()};
+                case "quarterly":
+                    String[] parts = cycleValue.split("-Q");
+                    if (parts.length == 2) {
+                        int year = Integer.parseInt(parts[0]);
+                        int quarter = Integer.parseInt(parts[1]);
+                        int startMonth = (quarter - 1) * 3 + 1;
+                        int endMonth = startMonth + 2;
+                        LocalDate start = LocalDate.of(year, startMonth, 1);
+                        LocalDate end = LocalDate.of(year, endMonth, start.lengthOfMonth());
+                        return new LocalDate[]{start, end};
+                    }
+                    break;
+                case "yearly":
+                    int year = Integer.parseInt(cycleValue);
+                    return new LocalDate[]{LocalDate.of(year, 1, 1), LocalDate.of(year, 12, 31)};
+                default:
+                    break;
+            }
+        } catch (Exception ignored) {
+        }
+        return null;
     }
 
     @Override

@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.performance.appraisal.mapper.AttendanceMapper">
+
+    <resultMap id="BaseResultMap" type="com.performance.appraisal.entity.EmpAttendance">
+        <id column="id" property="id"/>
+        <result column="employee_id" property="employeeId"/>
+        <result column="attendance_date" property="attendanceDate"/>
+        <result column="check_in_time" property="checkInTime"/>
+        <result column="check_out_time" property="checkOutTime"/>
+        <result column="status" property="status"/>
+        <result column="remark" property="remark"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <resultMap id="RecordDTOResultMap" type="com.performance.appraisal.dto.AttendanceRecordDTO">
+        <id column="id" property="id"/>
+        <result column="employee_id" property="employeeId"/>
+        <result column="attendance_date" property="attendanceDate"/>
+        <result column="check_in_time" property="checkInTime"/>
+        <result column="check_out_time" property="checkOutTime"/>
+        <result column="status" property="status"/>
+        <result column="remark" property="remark"/>
+    </resultMap>
+
+    <resultMap id="SummaryDTOResultMap" type="com.performance.appraisal.dto.AttendanceSummaryDTO">
+        <result column="total_days" property="totalDays"/>
+        <result column="normal_days" property="normalDays"/>
+        <result column="late_count" property="lateCount"/>
+        <result column="early_leave_count" property="earlyLeaveCount"/>
+        <result column="absent_count" property="absentCount"/>
+        <result column="leave_count" property="leaveCount"/>
+        <result column="exception_total" property="exceptionTotal"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, employee_id, attendance_date, check_in_time, check_out_time,
+        status, remark, create_time, update_time
+    </sql>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM emp_attendance
+        WHERE id = #{id}
+    </select>
+
+    <select id="selectByEmployeeAndDateRange" resultMap="RecordDTOResultMap">
+        SELECT id, employee_id, attendance_date, check_in_time, check_out_time, status, remark
+        FROM emp_attendance
+        WHERE employee_id = #{employeeId}
+        <if test="startDate != null">
+            AND attendance_date <![CDATA[ >= ]]> #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND attendance_date <![CDATA[ <= ]]> #{endDate}
+        </if>
+        ORDER BY attendance_date ASC
+    </select>
+
+    <select id="selectExceptionByEmployeeAndDateRange" resultMap="RecordDTOResultMap">
+        SELECT id, employee_id, attendance_date, check_in_time, check_out_time, status, remark
+        FROM emp_attendance
+        WHERE employee_id = #{employeeId}
+          AND status IN ('late', 'early_leave', 'absent', 'leave')
+        <if test="startDate != null">
+            AND attendance_date <![CDATA[ >= ]]> #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND attendance_date <![CDATA[ <= ]]> #{endDate}
+        </if>
+        ORDER BY attendance_date ASC
+    </select>
+
+    <select id="selectSummaryByEmployeeAndDateRange" resultMap="SummaryDTOResultMap">
+        SELECT
+            COUNT(*) AS total_days,
+            SUM(CASE WHEN status = 'normal' THEN 1 ELSE 0 END) AS normal_days,
+            SUM(CASE WHEN status = 'late' THEN 1 ELSE 0 END) AS late_count,
+            SUM(CASE WHEN status = 'early_leave' THEN 1 ELSE 0 END) AS early_leave_count,
+            SUM(CASE WHEN status = 'absent' THEN 1 ELSE 0 END) AS absent_count,
+            SUM(CASE WHEN status = 'leave' THEN 1 ELSE 0 END) AS leave_count,
+            SUM(CASE WHEN status IN ('late', 'early_leave', 'absent', 'leave') THEN 1 ELSE 0 END) AS exception_total
+        FROM emp_attendance
+        WHERE employee_id = #{employeeId}
+        <if test="startDate != null">
+            AND attendance_date <![CDATA[ >= ]]> #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND attendance_date <![CDATA[ <= ]]> #{endDate}
+        </if>
+    </select>
+
+    <insert id="insert" parameterType="com.performance.appraisal.entity.EmpAttendance"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO emp_attendance (employee_id, attendance_date, check_in_time, check_out_time,
+                                    status, remark, create_time, update_time)
+        VALUES (#{employeeId}, #{attendanceDate}, #{checkInTime}, #{checkOutTime},
+                #{status}, #{remark}, NOW(), NOW())
+    </insert>
+
+    <update id="update" parameterType="com.performance.appraisal.entity.EmpAttendance">
+        UPDATE emp_attendance
+        <set>
+            <if test="checkInTime != null">check_in_time = #{checkInTime},</if>
+            <if test="checkOutTime != null">check_out_time = #{checkOutTime},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            update_time = NOW()
+        </set>
+        WHERE id = #{id}
+    </update>
+</mapper>

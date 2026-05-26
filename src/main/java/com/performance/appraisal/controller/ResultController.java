@@ -2,8 +2,12 @@ package com.performance.appraisal.controller;
 
 import cn.dev33.satoken.annotation.SaCheckRole;
 import com.performance.appraisal.common.Result;
+import com.performance.appraisal.dto.AttendanceRecordDTO;
+import com.performance.appraisal.dto.AttendanceSummaryDTO;
 import com.performance.appraisal.dto.ResultSummaryDTO;
+import com.performance.appraisal.dto.SupervisorEvaluationDetailDTO;
 import com.performance.appraisal.dto.TrendDTO;
+import com.performance.appraisal.service.AttendanceService;
 import com.performance.appraisal.service.ResultService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -16,6 +20,9 @@ public class ResultController {
 
     @Autowired
     private ResultService resultService;
+
+    @Autowired
+    private AttendanceService attendanceService;
 
     @GetMapping("/{id}")
     public Result<ResultSummaryDTO> getById(@PathVariable Long id) {
@@ -53,6 +60,13 @@ public class ResultController {
         return Result.success(resultService.getTrend(employeeId, startCycle, endCycle));
     }
 
+    @GetMapping("/supervisor-detail")
+    public Result<SupervisorEvaluationDetailDTO> getSupervisorEvaluationDetail(
+            @RequestParam Long templateId,
+            @RequestParam Long employeeId) {
+        return Result.success(resultService.getSupervisorEvaluationDetail(templateId, employeeId));
+    }
+
     @PostMapping("/{id}/confirm")
     public Result<Void> confirmResult(@PathVariable Long id) {
         resultService.confirmResult(id);
@@ -71,5 +85,29 @@ public class ResultController {
     public Result<Void> publish(@RequestParam Long templateId) {
         resultService.publish(templateId);
         return Result.success("公示成功", null);
+    }
+
+    @GetMapping("/attendance/summary")
+    public Result<AttendanceSummaryDTO> getAttendanceSummaryByCycle(
+            @RequestParam Long employeeId,
+            @RequestParam String appraisalCycle,
+            @RequestParam String cycleValue) {
+        return Result.success(attendanceService.getAttendanceSummaryByCycle(employeeId, appraisalCycle, cycleValue));
+    }
+
+    @GetMapping("/attendance/records")
+    public Result<List<AttendanceRecordDTO>> getAttendanceRecordsByCycle(
+            @RequestParam Long employeeId,
+            @RequestParam String appraisalCycle,
+            @RequestParam String cycleValue) {
+        return Result.success(attendanceService.getAttendanceRecordsByCycle(employeeId, appraisalCycle, cycleValue));
+    }
+
+    @GetMapping("/attendance/exceptions")
+    public Result<List<AttendanceRecordDTO>> getAttendanceExceptionsByCycle(
+            @RequestParam Long employeeId,
+            @RequestParam String appraisalCycle,
+            @RequestParam String cycleValue) {
+        return Result.success(attendanceService.getAttendanceExceptionsByCycle(employeeId, appraisalCycle, cycleValue));
     }
 }

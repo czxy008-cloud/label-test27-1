@@ -402,3 +402,42 @@ INSERT INTO appraisal_indicator (template_id, parent_id, indicator_name, indicat
 INSERT INTO appraisal_indicator (template_id, parent_id, indicator_name, indicator_code, indicator_type, weight, max_score, scoring_criteria, sort_order) VALUES
     (1, 1, '任务完成率', 'KPI001-01', 'quantitative', 40.00, 100.00, '90-100: 100%以上; 80-89: 90-100%; 70-79: 80-90%; 60-69: 70-80%; 0-59: 70%以下', 1),
     (1, 1, '任务质量', 'KPI001-02', 'quantitative', 60.00, 100.00, '90-100: 零缺陷; 80-89: 少量bug; 70-79: 基本合格; 60-69: 较多缺陷; 0-59: 严重质量问题', 2);
+
+-- -----------------------------------------------------------------------------
+-- 8. 员工考勤记录表 - 存储员工的每日考勤数据，用于考核周期内的考勤统计
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS emp_attendance (
+    id              BIGSERIAL       PRIMARY KEY,
+    -- 员工ID，关联 emp_employee
+    employee_id     BIGINT          NOT NULL,
+    -- 考勤日期
+    attendance_date DATE            NOT NULL,
+    -- 签到时间
+    check_in_time   TIME,
+    -- 签退时间
+    check_out_time  TIME,
+    -- 考勤状态: normal-正常, late-迟到, early_leave-早退, absent-旷工, leave-请假
+    status          VARCHAR(20)     DEFAULT 'normal',
+    -- 备注信息，如请假原因等
+    remark          TEXT,
+    -- 创建时间
+    create_time     TIMESTAMP       DEFAULT CURRENT_TIMESTAMP,
+    -- 更新时间
+    update_time     TIMESTAMP       DEFAULT CURRENT_TIMESTAMP
+);
+COMMENT ON TABLE emp_attendance IS '员工考勤记录表';
+COMMENT ON COLUMN emp_attendance.id IS '考勤记录主键ID';
+COMMENT ON COLUMN emp_attendance.employee_id IS '员工ID';
+COMMENT ON COLUMN emp_attendance.attendance_date IS '考勤日期';
+COMMENT ON COLUMN emp_attendance.check_in_time IS '签到时间';
+COMMENT ON COLUMN emp_attendance.check_out_time IS '签退时间';
+COMMENT ON COLUMN emp_attendance.status IS '考勤状态: normal/late/early_leave/absent/leave';
+COMMENT ON COLUMN emp_attendance.remark IS '备注';
+COMMENT ON COLUMN emp_attendance.create_time IS '创建时间';
+COMMENT ON COLUMN emp_attendance.update_time IS '更新时间';
+
+-- 确保每个员工每天只有一条考勤记录
+CREATE UNIQUE INDEX IF NOT EXISTS uk_attendance_emp_date ON emp_attendance(employee_id, attendance_date);
+CREATE INDEX IF NOT EXISTS idx_attendance_emp_id ON emp_attendance(employee_id);
+CREATE INDEX IF NOT EXISTS idx_attendance_date ON emp_attendance(attendance_date);
+CREATE INDEX IF NOT EXISTS idx_attendance_status ON emp_attendance(status);
